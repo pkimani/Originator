@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "3001:3001"
+    depends_on:
+      - postgres
+      - mongo
+      - redis
+      - rabbitmq
+    env_file:
+      - .env
+    networks:
+      - backend-network
+      - frontend-network
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - backend-network
+      - frontend-network
+      
+      
+  graphql:
+    build:
+      context: ./graphql
+    ports:
+      - "4000:4000"
+    depends_on:
+      - backend
+    
+    volumes:
+      - ./graphql:/app
+    networks:
+      - backend-network
+
+  nginx:
+    image: nginx:latest
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./wait-for-frontend.sh:/wait-for-frontend.sh
+    ports:
+      - "80:80"
+    depends_on:
+      - frontend
+    networks:
+      - backend-network
+      - frontend-network
+    entrypoint: ./wait-for-frontend.sh nginx -g 'daemon off;'
+
+  postgres:
+    image: postgres:latest
+    env_file:
+      - .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend-network
+
+  mongo:
+    image: mongo:latest
+    env_file:
+      - .env
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - backend-network
+
+  redis:
+    image: redis:latest
+    networks:
+      - backend-network
+
+  rabbitmq:
+    image: rabbitmq:latest
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    env_file:
+      - .env
+    networks:
+      - backend-network
+
+networks:
+  frontend-network: {}
+  backend-network: {}
+
+volumes:
+  postgres_data: {}
+  mongo_data: {}
