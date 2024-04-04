@@ -4,8 +4,6 @@ services:
   backend:
     build:
       context: ./backend
-    ports:
-      - "3001:3001"
     depends_on:
       - postgres
       - mongo
@@ -14,56 +12,44 @@ services:
     env_file:
       - .env
     networks:
-      - backend-network
-      - frontend-network
+      - app-network
 
   frontend:
     build:
       context: ./frontend
-    ports:
-      - "3000:3000"
     depends_on:
       - backend
     networks:
-      - backend-network
-      - frontend-network
-      
-      
-  graphql:
-    build:
-      context: ./graphql
-    ports:
-      - "4000:4000"
-    depends_on:
-      - backend
-    
-    volumes:
-      - ./graphql:/app
-    networks:
-      - backend-network
+      - app-network
 
   nginx:
-    image: nginx:latest
+    image: nginx:alpine
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
-      - ./wait-for-frontend.sh:/wait-for-frontend.sh
+      - ./proxy_params:/etc/nginx/proxy_params
+      - ./dhparam.pem:/etc/nginx/dhparam.pem
+      - ./localhost.crt:/etc/nginx/localhost.crt
+      - ./localhost.key:/etc/nginx/localhost.key
+      - ./wait-for-graphql.sh:/wait-for-graphql.sh
+
     ports:
-      - "80:80"
+      - "443:443"
     depends_on:
       - frontend
     networks:
-      - backend-network
-      - frontend-network
-    entrypoint: ./wait-for-frontend.sh nginx -g 'daemon off;'
+      - app-network
+    entrypoint: ./wait-for-graphql.sh nginx -g 'daemon off;'
 
   postgres:
-    image: postgres:latest
+    image: postgres:alpine
     env_file:
       - .env
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
-      - backend-network
+      - app-network
+    ports:
+      - "5432:5432"
 
   mongo:
     image: mongo:latest
@@ -72,26 +58,27 @@ services:
     volumes:
       - mongo_data:/data/db
     networks:
-      - backend-network
+      - app-network
+    ports:
+      - "27017:27017"
 
   redis:
-    image: redis:latest
+    image: redis:alpine
     networks:
-      - backend-network
+      - app-network
 
   rabbitmq:
-    image: rabbitmq:latest
+    image: rabbitmq:alpine
     ports:
       - "15672:15672"
       - "5672:5672"
     env_file:
       - .env
     networks:
-      - backend-network
+      - app-network
 
 networks:
-  frontend-network: {}
-  backend-network: {}
+  app-network: {}
 
 volumes:
   postgres_data: {}

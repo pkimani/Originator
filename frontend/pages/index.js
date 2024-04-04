@@ -1,14 +1,27 @@
-// frontend/pages/index.js
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import 'tailwindcss/tailwind.css'; // Ensure this is imported to apply Tailwind styles
+import { ApolloClient, InMemoryCache, gql } from '@apollo/client';
 
 export default function Home() {
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = React.useState('');
 
-  useEffect(() => {
-    fetch('/api')
-      .then(response => response.text())
-      .then(data => setMessage(data));
+  React.useEffect(() => {
+    const client = new ApolloClient({
+      uri: '/graphql', // Assuming GraphQL endpoint is served from the same origin
+      cache: new InMemoryCache(),
+    });
+
+    client
+      .query({
+        query: gql`
+          query {
+            hello
+          }
+        `,
+      })
+      .then((result) => {
+        setMessage(result.data.hello);
+      });
   }, []);
 
   return (
