@@ -1,2 +1,2 @@
 # Originator
-This is a social media built with full stack web application technologies.
+This is an Express.js template built with full stack web application technologies.
